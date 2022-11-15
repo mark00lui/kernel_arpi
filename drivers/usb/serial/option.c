@@ -2248,6 +2248,40 @@ static int option_probe(struct usb_serial *serial,
 				&serial->interface->cur_altsetting->desc;
 	unsigned long device_flags = id->driver_info;
 
+#if 1 //Added by Quectel
+	//Quectel UC20's interface 4 can be used as USB Network device
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x05C6) && serial->dev->descriptor.idProduct == cpu_to_le16(0x9003)
+		&& serial->interface->cur_altsetting->desc.bInterfaceNumber >= 4)
+		return -ENODEV;
+
+	//Quectel EC20(MDM9215)'s interface 4 can be used as USB Network device
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x05C6) && serial->dev->descriptor.idProduct == cpu_to_le16(0x9215)
+		&& serial->interface->cur_altsetting->desc.bInterfaceNumber >= 4)
+		return -ENODEV;
+
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x2C7C)) {
+		__u16 idProduct = le16_to_cpu(serial->dev->descriptor.idProduct);
+		__u8 bInterfaceNumber = serial->interface->cur_altsetting->desc.bInterfaceNumber;
+
+		//Quectel module's some interfaces can be used as USB Network device (ecm, rndis, mbim)
+		if (serial->interface->cur_altsetting->desc.bInterfaceClass != 0xFF)
+			return -ENODEV;
+
+		if ((idProduct&0xF000) == 0x6000) {
+				//ASR interface 4 is modem port
+		}
+		else if ((idProduct&0xF000) == 0x8000) {
+				//HISI interface 0 is NCM
+				if (bInterfaceNumber < 1)
+						return -ENODEV;
+		}
+		else {
+				//MDM interface 4 is QMI
+				if (bInterfaceNumber >= 4)
+						return -ENODEV;
+		}
+	}
+#endif
 	/* Never bind to the CD-Rom emulation interface	*/
 	if (iface_desc->bInterfaceClass == USB_CLASS_MASS_STORAGE)
 		return -ENODEV;
@@ -2266,22 +2300,6 @@ static int option_probe(struct usb_serial *serial,
 	 */
 	if (device_flags & NUMEP2 && iface_desc->bNumEndpoints != 2)
 		return -ENODEV;
-
-	#if 1 //Added by Quectel
-	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x2C7C)) {
-		__u16 idProduct = le16_to_cpu(serial->dev->descriptor.idProduct);
-		struct usb_interface_descriptor *intf = &serial->interface->cur_altsetting->desc;
-
-		if (intf->bInterfaceClass != 0xFF || intf->bInterfaceSubClass == 0x42) {	//ECM, RNDIS, NCM, MBIM, ACM, UAC, ADB
-			return -ENODEV;
-		}
-		
-		if ((idProduct&0xF000) == 0x0000) {	//MDM interface 4 is QMI
-			if (intf->bInterfaceNumber == 4 && intf->bNumEndpoints == 3 && intf->bInterfaceSubClass == 0xFF && intf->bInterfaceProtocol == 0xFF)
-				return -ENODEV;
-		}
-	}
-	#endif
 
 	/* Store the device flags so we can use them during attach. */
 	usb_set_serial_data(serial, (void *)device_flags);
