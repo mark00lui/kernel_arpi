@@ -2176,6 +2176,18 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE_INTERFACE_CLASS(0x305a, 0x1405, 0xff) },			/* GosunCn GM500 MBIM */
 	{ USB_DEVICE_INTERFACE_CLASS(0x305a, 0x1406, 0xff) },			/* GosunCn GM500 ECM/NCM */
 	{ USB_DEVICE_AND_INTERFACE_INFO(OPPO_VENDOR_ID, OPPO_PRODUCT_R11, 0xff, 0xff, 0x30) },
+	if 1 //Added by Quectel 
+	{ USB_DEVICE(0x05C6, 0x9090) }, /* Quectel UC15 */ 
+	{ USB_DEVICE(0x05C6, 0x9003) }, /* Quectel UC20 */ 
+	{ USB_DEVICE(0x2C7C, 0x0125) }, /* Quectel EC25/EC20 R2.0 */ 
+	{ USB_DEVICE(0x2C7C, 0x0121) }, /* Quectel EC21 */ 
+	{ USB_DEVICE(0x05C6, 0x9215) }, /* Quectel EC20 */ 
+	{ USB_DEVICE(0x2C7C, 0x0191) }, /* Quectel EG91 */ 
+	{ USB_DEVICE(0x2C7C, 0x0195) }, /* Quectel EG95 */ 
+	{ USB_DEVICE(0x2C7C, 0x0306) }, /* Quectel EG06/EP06/EM06 */ 
+	{ USB_DEVICE(0x2C7C, 0x0296) }, /* Quectel BG96 */ 
+	{ USB_DEVICE(0x2C7C, 0x0800) }, /* Quectel RG500/502 */ 
+	#endif
 	{ } /* Terminating entry */
 };
 MODULE_DEVICE_TABLE(usb, option_ids);
@@ -2251,6 +2263,22 @@ static int option_probe(struct usb_serial *serial,
 	 */
 	if (device_flags & NUMEP2 && iface_desc->bNumEndpoints != 2)
 		return -ENODEV;
+
+	#if 1 //Added by Quectel
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x2C7C)) {
+		__u16 idProduct = le16_to_cpu(serial->dev->descriptor.idProduct);
+		struct usb_interface_descriptor *intf = &serial->interface->cur_altsetting->desc;
+
+		if (intf->bInterfaceClass != 0xFF || intf->bInterfaceSubClass == 0x42) {	//ECM, RNDIS, NCM, MBIM, ACM, UAC, ADB
+			return -ENODEV;
+		}
+		
+		if ((idProduct&0xF000) == 0x0000) {	//MDM interface 4 is QMI
+			if (intf->bInterfaceNumber == 4 && intf->bNumEndpoints == 3 && intf->bInterfaceSubClass == 0xFF && intf->bInterfaceProtocol == 0xFF)
+				return -ENODEV;
+		}
+	}
+	#endif
 
 	/* Store the device flags so we can use them during attach. */
 	usb_set_serial_data(serial, (void *)device_flags);
