@@ -45,74 +45,6 @@
  * commands on a serial interface
  */
 
-#if 1 //Added by Quectel
-#include <linux/etherdevice.h>
-struct sk_buff *qmi_wwan_tx_fixup(struct usbnet *dev, struct sk_buff *skb, gfp_t flags)
-{
-	if (dev->udev->descriptor.idVendor != cpu_to_le16(0x2C7C))
-		return skb;
-		
-	// Skip Ethernet header from message
-	if (skb_pull(skb, ETH_HLEN)) {
-		return skb;
-	} else {
-		dev_err(&dev->intf->dev, "Packet Dropped ");
-	}
-	
-	// Filter the packet out, release it
-	dev_kfree_skb_any(skb);
-	return NULL;
-}
-
-#include <linux/version.h>
-#if (LINUX_VERSION_CODE < KERNEL_VERSION( 3,9,1 ))
-static int qmi_wwan_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
-{
-	__be16 proto;
-	
-	if (dev->udev->descriptor.idVendor != cpu_to_le16(0x2C7C))
-		return 1;
-		
-	/* This check is no longer done by usbnet */
-	if (skb->len < dev->net->hard_header_len)
-		return 0;
-		
-	switch (skb->data[0] & 0xf0) {
-	case 0x40:
-		proto = htons(ETH_P_IP);
-		break;
-	case 0x60:
-		proto = htons(ETH_P_IPV6);
-		break;
-	case 0x00:
-		if (is_multicast_ether_addr(skb->data))
-			return 1;
-		/* possibly bogus destination - rewrite just in case */
-		skb_reset_mac_header(skb);
-		goto fix_dest;
-	default:
-		/* pass along other packets without modifications */
-		return 1;
-	}
-	if (skb_headroom(skb) < ETH_HLEN)
-		return 0;
-	skb_push(skb, ETH_HLEN);
-	skb_reset_mac_header(skb);
-	eth_hdr(skb)->h_proto = proto;
-	memset(eth_hdr(skb)->h_source, 0, ETH_ALEN);
-fix_dest:
-	memcpy(eth_hdr(skb)->h_dest, dev->net->dev_addr, ETH_ALEN);
-	return 1;
-}
-
-/* very simplistic detection of IPv4 or IPv6 headers */
-static bool possibly_iphdr(const char *data)
-{
-	return (data[0] & 0xd0) == 0x40;
-}
-#endif
-#endif
-
 /* driver specific data */
 struct qmi_wwan_state {
 	struct usb_driver *subdriver;
@@ -913,13 +845,6 @@ static int qmi_wwan_bind(struct usbnet *dev, struct usb_interface *intf)
 	if (dev->udev->descriptor.idVendor == cpu_to_le16(0x2C7C)) {
 		dev_info(&intf->dev, "Quectel EC25&EC21&EG91&EG95&EG06&EP06&EM06&BG96&AG35 work on RawIP mode\n");
 		dev->net->flags |= IFF_NOARP;
-		#if (LINUX_VERSION_CODE < KERNEL_VERSION( 3,9,1 ))
-		/* make MAC addr easily distinguishable from an IP header */
-		if (possibly_iphdr(dev->net->dev_addr)) {
-			dev->net->dev_addr[0] |= 0x02; /* set local assignment bit */
-			dev->net->dev_addr[0] &= 0xbf; /* clear "IP" bit */
-		}
-		#endif
 	usb_control_msg(
 		interface_to_usbdev(intf),
 		usb_sndctrlpipe(interface_to_usbdev(intf), 0),
@@ -1021,10 +946,6 @@ static const struct driver_info	qmi_wwan_info = {
 	.unbind		= qmi_wwan_unbind,
 	.manage_power	= qmi_wwan_manage_power,
 	.rx_fixup       = qmi_wwan_rx_fixup,
-#if 1 //Added by Quectel
-	.tx_fixup = qmi_wwan_tx_fixup,
-	.rx_fixup = qmi_wwan_rx_fixup,
-#endif
 };
 
 static const struct driver_info	qmi_wwan_info_quirk_dtr = {
