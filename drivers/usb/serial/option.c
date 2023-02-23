@@ -2176,18 +2176,32 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE_INTERFACE_CLASS(0x305a, 0x1405, 0xff) },			/* GosunCn GM500 MBIM */
 	{ USB_DEVICE_INTERFACE_CLASS(0x305a, 0x1406, 0xff) },			/* GosunCn GM500 ECM/NCM */
 	{ USB_DEVICE_AND_INTERFACE_INFO(OPPO_VENDOR_ID, OPPO_PRODUCT_R11, 0xff, 0xff, 0x30) },
-	#if 1 //Added by Quectel 
-	{ USB_DEVICE(0x05C6, 0x9090) }, /* Quectel UC15 */ 
-	{ USB_DEVICE(0x05C6, 0x9003) }, /* Quectel UC20 */ 
-	{ USB_DEVICE(0x2C7C, 0x0125) }, /* Quectel EC25/EC20 R2.0 */ 
-	{ USB_DEVICE(0x2C7C, 0x0121) }, /* Quectel EC21 */ 
-	{ USB_DEVICE(0x05C6, 0x9215) }, /* Quectel EC20 */ 
-	{ USB_DEVICE(0x2C7C, 0x0191) }, /* Quectel EG91 */ 
-	{ USB_DEVICE(0x2C7C, 0x0195) }, /* Quectel EG95 */ 
-	{ USB_DEVICE(0x2C7C, 0x0306) }, /* Quectel EG06/EP06/EM06 */ 
-	{ USB_DEVICE(0x2C7C, 0x0296) }, /* Quectel BG96 */ 
-	{ USB_DEVICE(0x2C7C, 0x0800) }, /* Quectel RG500/502 */ 
-	#endif
+#if 1 //Added by Quectel
+        { USB_DEVICE(0x05C6, 0x9090) }, /* Quectel UC15 */
+        { USB_DEVICE(0x05C6, 0x9003) }, /* Quectel UC20 */
+        { USB_DEVICE(0x05C6, 0x9215) }, /* Quectel EC20(MDM9215) */
+        { USB_DEVICE(0x2C7C, 0x0125) }, /* Quectel EC20(MDM9x07)/EC25/EG25 */
+        { USB_DEVICE(0x2C7C, 0x0121) }, /* Quectel EC21 */
+        { USB_DEVICE(0x2C7C, 0x0191) }, /* Quectel EG91 */
+        { USB_DEVICE(0x2C7C, 0x0195) }, /* Quectel EG95 */
+        { USB_DEVICE(0x2C7C, 0x0306) }, /* Quectel EG06/EP06/EM06 */
+        { USB_DEVICE(0x2C7C, 0x030B) }, /* Quectel EG065K/EG060K */
+        { USB_DEVICE(0x2C7C, 0x0514) }, /* Quectel BL EG060K RNDIS Only */
+        { USB_DEVICE(0x2C7C, 0x0513) }, /* Quectel EM060K-GL */
+        { USB_DEVICE(0x2C7C, 0x0512) }, /* Quectel EG12/EP12/EM12/EG16/EG18 */
+        { USB_DEVICE(0x2C7C, 0x0296) }, /* Quectel BG96 */
+        { USB_DEVICE(0x2C7C, 0x0700) }, /* Quectel BG95/BG77/BG600L-M3/BC69 */
+        { USB_DEVICE(0x2C7C, 0x0435) }, /* Quectel AG35 */
+        { USB_DEVICE(0x2C7C, 0x0415) }, /* Quectel AG15 */
+        { USB_DEVICE(0x2C7C, 0x0452) }, /* Quectel AG520 */
+        { USB_DEVICE(0x2C7C, 0x0455) }, /* Quectel AG550 */
+        { USB_DEVICE(0x2C7C, 0x0620) }, /* Quectel EG20 */
+        { USB_DEVICE(0x2C7C, 0x0800) }, /* Quectel RG500/RM500/RG510/RM510 */
+        { USB_DEVICE(0x2C7C, 0x0801) }, /* Quectel RG520/RM520/SG520 */
+        { USB_DEVICE(0x2C7C, 0x6026) }, /* Quectel EC200 */
+        { USB_DEVICE(0x2C7C, 0x6120) }, /* Quectel UC200 */
+        { USB_DEVICE(0x2C7C, 0x6000) }, /* Quectel EC200/UC200 */
+        { .match_flags = USB_DEVICE_ID_MATCH_VENDOR, .idVendor = 0x2C7C }, /* Match All Quectel Modules */	
 	{ } /* Terminating entry */
 };
 MODULE_DEVICE_TABLE(usb, option_ids);
