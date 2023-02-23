@@ -958,6 +958,16 @@ static const struct driver_info	qmi_wwan_info_quirk_dtr = {
 	.data           = QMI_WWAN_QUIRK_DTR,
 };
 
+static const struct driver_info        qmi_wwan_info_quirk_dtr_rawip = {
+       .description    = "WWAN/QMI device",
+       .flags          = FLAG_WWAN | FLAG_SEND_ZLP | QMI_WWAN_FLAG_RAWIP,
+       .bind           = qmi_wwan_bind,
+       .unbind         = qmi_wwan_unbind,
+       .manage_power   = qmi_wwan_manage_power,
+       .rx_fixup       = qmi_wwan_rx_fixup,
+       .data           = QMI_WWAN_QUIRK_DTR,
+};
+
 #define HUAWEI_VENDOR_ID	0x12D1
 
 /* map QMI/wwan function by a fixed interface number */
@@ -989,9 +999,16 @@ static const struct driver_info	qmi_wwan_info_quirk_dtr = {
 #define QMI_MATCH_FF_FF_FF(vend, prod) \
 	USB_DEVICE_AND_INTERFACE_INFO(vend, prod, USB_CLASS_VENDOR_SPEC, \
 				      USB_SUBCLASS_VENDOR_SPEC, 0xff), \
-	.driver_info = (unsigned long)&qmi_wwan_info_quirk_dtr
+	.driver_info = (unsigned long)&qmi_wwan_info_quirk_dtr_rawip
 
 static const struct usb_device_id products[] = {
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0125)},   /* Quectel EC25, EC20 R2.0  Mini PCIe */
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0306)},   /* Quectel EP06/EG06/EM06 */
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0512)},   /* Quectel EG12/EM12 */
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0513)},   /* Quectel EM060K-GL */
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0620)},   /* Quectel EM160R-GL */
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0800)},   /* Quectel RM500Q-GL */
+        {QMI_MATCH_FF_FF_FF(0x2c7c, 0x0801)},   /* Quectel RM520N-GL */
 	/* 1. CDC ECM like devices match on the control interface */
 	{	/* Huawei E392, E398 and possibly others sharing both device id and more... */
 		USB_VENDOR_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, USB_CLASS_VENDOR_SPEC, 1, 9),
@@ -1095,13 +1112,6 @@ static const struct usb_device_id products[] = {
 		USB_DEVICE_AND_INTERFACE_INFO(0x03f0, 0x581d, USB_CLASS_VENDOR_SPEC, 1, 7),
 		.driver_info = (unsigned long)&qmi_wwan_info,
 	},
-	{QMI_MATCH_FF_FF_FF(0x2c7c, 0x0125)},	/* Quectel EC25, EC20 R2.0  Mini PCIe */
-	{QMI_MATCH_FF_FF_FF(0x2c7c, 0x0306)},	/* Quectel EP06/EG06/EM06 */
-	{QMI_MATCH_FF_FF_FF(0x2c7c, 0x0512)},	/* Quectel EG12/EM12 */
-	{QMI_MATCH_FF_FF_FF(0x2c7c, 0x0620)},	/* Quectel EM160R-GL */
-	{QMI_MATCH_FF_FF_FF(0x2c7c, 0x0800)},	/* Quectel RM500Q-GL */
-	{QMI_MATCH_FF_FF_FF(0x2c7c, 0x0801)},	/* Quectel RM520N */
-
 	/* 3. Combined interface devices matching on interface number */
 	{QMI_FIXED_INTF(0x0408, 0xea42, 4)},	/* Yota / Megafon M100-1 */
 	{QMI_FIXED_INTF(0x05c6, 0x6001, 3)},	/* 4G LTE usb-modem U901 */
@@ -1507,6 +1517,7 @@ static int qmi_wwan_probe(struct usb_interface *intf,
 {
 	struct usb_device_id *id = (struct usb_device_id *)prod;
 	struct usb_interface_descriptor *desc = &intf->cur_altsetting->desc;
+	int status = 0;
 
 	/* Workaround to enable dynamic IDs.  This disables usbnet
 	 * blacklisting functionality.  Which, if required, can be
@@ -1545,7 +1556,18 @@ static int qmi_wwan_probe(struct usb_interface *intf,
 	if (desc->bNumEndpoints == 2)
 		return -ENODEV;
 
-	return usbnet_probe(intf, id);
+	//return usbnet_probe(intf, id);
+        status = usbnet_probe(intf, id);
+        if (status == 0) {
+                struct driver_info *info = (struct driver_info *)(id->driver_info);
+                if (info->flags & FLAG_NOARP) {
+                       struct usbnet *dev = usb_get_intfdata(intf);
+                       struct qmi_wwan_state *devinfo = (void *)&dev->data;
+                       devinfo->flags |= QMI_WWAN_FLAG_RAWIP;
+                       qmi_wwan_netdev_setup(dev->net);
+                }
+        }
+        return status;
 }
 
 static void qmi_wwan_disconnect(struct usb_interface *intf)
